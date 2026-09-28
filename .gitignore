@@ -1,0 +1,55 @@
+# =========================
+# Python & Django Core
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# =========================
+# Virtual Environment
+# =========================
+venv/
+env/
+.venv/
+
+# =========================
+# Database Utama
+# =========================
+# Jangan unggah database SQLite lokal ke GitHub
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+
+# =========================
+# Dataset & Analisa Pasar
+# =========================
+# Abaikan semua file CSV atau Excel yang berisi data harga
+*.csv
+*.xlsx
+# Jika Anda membuat folder khusus untuk menyimpan data, abaikan folderneringnya
+data/
+datasets/
+
+# =========================
+# Environment Variables & Secrets
+# =========================
+# Jangan PERNAH mengunggah kredensial, API key, atau password database
+.env
+.env.local
+.env.development
+
+# =========================
+# OS & Code Editor Configs
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# File Statis & Media Django
+# =========================
+# (Opsional: Aktifkan jika Anda sudah setup media/static root)
+# media/
+# staticfiles/
