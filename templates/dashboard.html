@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard {{ ticker }} - Sektor {{ sector.name }} | Tekno-Market Hub{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 360px;
+        width: 100%;
+    }
+    .hover-elevate {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-elevate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <!-- Tombol Watchlist (POST + CSRF) -->
+    <form action="{% url 'toggle_watchlist' ticker %}" method="POST" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm {% if in_watchlist %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %} d-flex align-items-center gap-1 shadow-sm hover-elevate">
+            <i class="bi {% if in_watchlist %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+            <span>{% if in_watchlist %}Tersimpan{% else %}+ Watchlist{% endif %}</span>
+        </button>
+    </form>
+
+    <!-- Tombol Sinkronisasi Live Yahoo Finance (Proteksi Double-Click) -->
+    <form id="syncForm" method="POST" action="{% url 'sync_ticker' ticker %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" id="syncBtn" class="btn btn-sm btn-outline-success d-flex align-items-center gap-1 shadow-sm hover-elevate">
+            <i class="bi bi-cloud-arrow-down-fill" id="syncIcon"></i>
+            <span id="syncText">Sinkronkan Live (YFinance)</span>
+            <span id="syncSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+        </button>
+    </form>
+
+    <!-- Tombol Komparasi -->
+    <a href="{% url 'stock_compare' %}?tickers={{ ticker }}" class="btn btn-sm btn-outline-info text-dark d-flex align-items-center gap-1 shadow-sm hover-elevate">
+        <i class="bi bi-bar-chart-steps"></i>
+        <span>Komparasi</span>
+    </a>
+
+    <!-- Dropdown Ekspor Data -->
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1 shadow-sm hover-elevate" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-download"></i>
+            <span>Ekspor Data</span>
+        </button>
+        <ul class="dropdown-menu shadow border-0 rounded-3">
+            <li><h6 class="dropdown-header text-uppercase fs-7">Unduh Format:</h6></li>
+            <li>
+                <a class="dropdown-item py-2" href="{% url 'export_csv' ticker %}">
+                    <i class="bi bi-filetype-csv text-primary me-2"></i>Format CSV (.csv)
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item py-2" href="{% url 'export_excel' ticker %}">
+                    <i class="bi bi-file-earmark-excel text-success me-2"></i>Format Excel (.xlsx)
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Dropdown Pindah Emiten Sejenis -->
+    {% if peer_tickers %}
+    <div class="dropdown">
+        <button class="btn btn-outline-dark btn-sm dropdown-toggle d-flex align-items-center gap-1 shadow-sm hover-elevate" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-arrow-left-right"></i>
+            <span>Emiten Sejenis</span>
+        </button>
+        <ul class="dropdown-menu shadow border-0 rounded-3 max-h-200 overflow-auto">
+            <li><h6 class="dropdown-header text-uppercase fs-7">Sektor {{ sector.name }}</h6></li>
+            {% for p in peer_tickers %}
+            <li>
+                <a class="dropdown-item py-2 {% if p == ticker %}active fw-bold{% endif %}" href="{% url 'stock_dashboard' p %}">
+                    {{ p }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Tautan ke API JSON -->
+    <a href="{{ api_url }}" target="_blank" class="btn btn-sm btn-light border d-flex align-items-center gap-1 shadow-sm hover-elevate">
+        <i class="bi bi-braces text-primary"></i>
+        <span>JSON</span>
+    </a>
+</div>
+
+{% if stocks %}
+<div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+    <!-- 2. Tertinggi 30 Hari -->
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-white p-3 rounded-4 hover-elevate">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Tertinggi (30 Hari)</small>
+                <div class="p-2 rounded-3 bg-success-subtle text-success">
+                    <i class="bi bi-graph-up-arrow fs-5"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-success">Rp {{ high_30|intcomma }}</h3>
+            <small class="text-muted" style="font-size: 0.75rem;">Puncak harga periode ini</small>
+        </div>
+    </div>
+
+    <!-- 3. Terendah 30 Hari -->
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-white p-3 rounded-4 hover-elevate">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Terendah (30 Hari)</small>
+                <div class="p-2 rounded-3 bg-danger-subtle text-danger">
+                    <i class="bi bi-graph-down-arrow fs-5"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-danger">Rp {{ low_30|intcomma }}</h3>
+            <small class="text-muted" style="font-size: 0.75rem;">Dasar harga periode ini</small>
+        </div>
+    </div>
+
+    <!-- 4. Total Volume -->
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 bg-white p-3 rounded-4 hover-elevate">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Volume (30D)</small>
+                <div class="p-2 rounded-3 bg-info-subtle text-info">
+                    <i class="bi bi-bar-chart-line-fill fs-5"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-dark">{{ total_volume|intcomma }}</h3>
+            <small class="text-muted" style="font-size: 0.75rem;">Lembar saham diperdagangkan</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- RSI -->
+    <div class="col-md-3">
+        <div class="p-3 bg-light rounded-4 border-0 h-100">
+            <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.7rem;">RSI (14 Periode)</small>
+            <div class="d-flex align-items-baseline gap-2">
+                <h4 class="fw-bold mb-0 text-dark">{{ tech.rsi|default:"N/A" }}</h4>
+                {% if tech.rsi_signal %}
+                <span class="badge bg-{{ tech.rsi_badge }}-subtle text-{{ tech.rsi_badge }} border border-{{ tech.rsi_badge }}-subtle" style="font-size: 0.7rem;">
+                    {{ tech.rsi_signal }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Support -->
+    <div class="col-md-3">
+        <div class="p-3 bg-light rounded-4 border-0 h-100">
+            <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.7rem;">Support Level (30D Low)</small>
+            <h4 class="fw-bold mb-0 text-danger">Rp {{ tech.support|intcomma|default:"0" }}</h4>
+            <small class="text-muted" style="font-size: 0.65rem;">Batas bawah teknikal</small>
+        </div>
+    </div>
+
+    <!-- Resistance -->
+    <div class="col-md-3">
+        <div class="p-3 bg-light rounded-4 border-0 h-100">
+            <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.7rem;">Resistance Level (30D High)</small>
+            <h4 class="fw-bold mb-0 text-success">Rp {{ tech.resistance|intcomma|default:"0" }}</h4>
+            <small class="text-muted" style="font-size: 0.65rem;">Batas atas teknikal</small>
+        </div>
+    </div>
+
+    <!-- Sinyal Ringkasan -->
+    <div class="col-md-3">
+        <div class="p-3 bg-light rounded-4 border-0 h-100">
+            <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.7rem;">Status Momentum</small>
+            <h5 class="fw-bold mb-0 text-dark text-truncate">{{ tech.trend_signal|default:"N/A" }}</h5>
+            <small class="text-muted" style="font-size: 0.65rem;">Posisi harga vs Moving Average</small>
+        </div>
+    </div>
+</div>
+
+<!-- Render Data Aman dengan Django json_script -->
+{{ chart_dates_json|json_script:"chart-dates" }}
+{{ chart_closes_json|json_script:"chart-closes" }}
+{{ chart_volumes_json|json_script:"chart-volumes" }}
+{{ chart_sma5_json|json_script:"chart-sma5" }}
+{{ chart_sma20_json|json_script:"chart-sma20" }}
+{{ chart_bbupper_json|json_script:"chart-bbupper" }}
+{{ chart_bblower_json|json_script:"chart-bblower" }}
+
+<div class="card shadow-sm border-0 mb-4 bg-white rounded-4 p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <!-- Toggle Controls untuk Indikator -->
+        <div class="btn-group btn-group-sm shadow-sm" role="group" aria-label="Toggle Indicators">
+            <input type="checkbox" class="btn-check" id="toggleSMA5" checked autocomplete="off" onchange="toggleDataset(2, this.checked)">
+            <label class="btn btn-outline-warning text-dark fw-semibold" for="toggleSMA5">SMA 5</label>
+
+            <input type="checkbox" class="btn-check" id="toggleSMA20" checked autocomplete="off" onchange="toggleDataset(3, this.checked)">
+            <label class="btn btn-outline-danger text-dark fw-semibold" for="toggleSMA20">SMA 20</label>
+
+            <input type="checkbox" class="btn-check" id="toggleBB" autocomplete="off" onchange="toggleBollingerBands(this.checked)">
+            <label class="btn btn-outline-secondary text-dark fw-semibold" for="toggleBB">Bollinger Bands</label>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="stockPriceChart"></canvas>
+    </div>
+</div>
+
+<div class="table-responsive bg-white rounded-4 shadow-sm mb-5">
+    <table class="table table-hover align-middle mb-0 text-nowrap">
+        <thead class="table-light">
+            <tr style="font-size: 0.8rem;" class="text-secondary text-uppercase fw-bold">
+                <th class="ps-4">Tanggal</th>
+                <th class="text-end">Open</th>
+                <th class="text-end">High</th>
+                <th class="text-end">Low</th>
+                <th class="text-end">Close</th>
+                <th class="text-center">Perubahan</th>
+                <th class="text-end pe-4">Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table_rows %}
+            <tr>
+                <td class="ps-4 fw-semibold text-dark">{{ row.date|date:"d M Y" }}</td>
+                <td class="text-end font-monospace">Rp {{ row.open_price|intcomma }}</td>
+                <td class="text-end font-monospace text-success">Rp {{ row.high_price|intcomma }}</td>
+                <td class="text-end font-monospace text-danger">Rp {{ row.low_price|intcomma }}</td>
+                <td class="text-end font-monospace fw-bold text-dark">Rp {{ row.close_price|intcomma }}</td>
+                <td class="text-center">
+                    {% if row.is_up %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                        <i class="bi bi-caret-up-fill me-1"></i>+{{ row.change_pct|floatformat:2 }}%
+                    </span>
+                    {% elif row.is_down %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                        <i class="bi bi-caret-down-fill me-1"></i>{{ row.change_pct|floatformat:2 }}%
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                        0.00%
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="text-end pe-4 font-monospace text-muted">{{ row.volume|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="card shadow-sm border-0 bg-white rounded-4 p-5 text-center my-4">
+    <div class="py-4">
+        <i class="bi bi-inbox text-muted display-4 d-block mb-3"></i>
+        <h4 class="fw-bold text-dark">Belum Ada Data untuk Ticker {{ ticker }}</h4>
+        <p class="text-muted">Data harga historis untuk emiten ini belum tersedia di database lokal.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %} 
+{% if stocks %}
+<script>
+    let chartInstance = null;
+
+    // 1. Proteksi Tombol Sinkronisasi Anti Double-Click
+    document.getElementById('syncForm')?.addEventListener('submit', function () {
+        const btn = document.getElementById('syncBtn');
+        const icon = document.getElementById('syncIcon');
+        const text = document.getElementById('syncText');
+        const spinner = document.getElementById('syncSpinner');
+
+        btn.classList.add('disabled');
+        icon.classList.add('d-none');
+        text.textContent = 'Menyinkronkan...';
+        spinner.classList.remove('d-none');
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // 2. Parser json_script Anti-Error (Handling Null/Empty)
+        const parseJsonSafe = (id) => {
+            const el = document.getElementById(id);
+            if (!el || !el.textContent.trim()) return [];
+            try { return JSON.parse(el.textContent); } catch (e) { return []; }
+        };
+
+        const dates = parseJsonSafe('chart-dates');
+        const closes = parseJsonSafe('chart-closes');
+        const volumes = parseJsonSafe('chart-volumes');
+        const sma5 = parseJsonSafe('chart-sma5');
+        const sma20 = parseJsonSafe('chart-sma20');
+        const bbUpper = parseJsonSafe('chart-bbupper');
+        const bbLower = parseJsonSafe('chart-bblower');
+
+        const ctx = document.getElementById('stockPriceChart').getContext('2d');
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Harga Penutupan (Rp)',
+                        data: closes,
+                        borderColor: '#0d6efd',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        yAxisID: 'yPrice'
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Volume Transaksi',
+                        data: volumes,
+                        backgroundColor: 'rgba(108, 117, 125, 0.2)',
+                        yAxisID: 'yVolume'
+                    },
+                    {
+                        label: 'SMA 5',
+                        data: sma5,
+                        borderColor: '#ffc107',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'yPrice'
+                    },
+                    {
+                        label: 'SMA 20',
+                        data: sma20,
+                        borderColor: '#dc3545',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'yPrice'
+                    },
+                    {
+                        label: 'BB Upper',
+                        data: bbUpper,
+                        borderColor: '#6c757d',
+                        borderDash: [4, 4],
+                        borderWidth: 1.2,
+                        pointRadius: 0,
+                        fill: false,
+                        hidden: true,
+                        yAxisID: 'yPrice'
+                    },
+                    {
+                        label: 'BB Lower',
+                        data: bbLower,
+                        borderColor: '#6c757d',
+                        borderDash: [4, 4],
+                        borderWidth: 1.2,
+                        pointRadius: 0,
+                        fill: false,
+                        hidden: true,
+                        yAxisID: 'yPrice'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    yPrice: {
+                        type: 'linear',
+                        position: 'left',
+                        ticks: {
+                            callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }
+                        }
+                    },
+                    yVolume: {
+                        type: 'linear',
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1e9) return (value / 1e9).toFixed(1) + 'B';
+                                if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
+                                if (value >= 1e3) return (value / 1e3).toFixed(0) + 'K';
+                                return value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                // 3. Tooltip Presisi dan Penanganan Null
+                                if (context.dataset.yAxisID === 'yPrice') {
+                                    return context.dataset.label + ': Rp ' + (context.parsed.y !== null ? context.parsed.y.toLocaleString('id-ID') : 'N/A');
+                                } else {
+                                    return 'Volume: ' + (context.parsed.y !== null ? context.parsed.y.toLocaleString('id-ID') : '0');
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    function toggleDataset(index, visible) {
+        if (!chartInstance) return;
+        chartInstance.setDatasetVisibility(index, visible);
+        chartInstance.update();
+    }
+
+    function toggleBollingerBands(visible) {
+        if (!chartInstance) return;
+        chartInstance.setDatasetVisibility(4, visible); // BB Upper
+        chartInstance.setDatasetVisibility(5, visible); // BB Lower
+        chartInstance.update();
+    }
+</script>
+{% endif %} 
+{% endblock %}

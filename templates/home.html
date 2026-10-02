@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Beranda - Tekno-Market Hub{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="p-4 p-md-5 mb-4 bg-white rounded-4 shadow-sm border position-relative overflow-hidden">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3 fw-semibold">
+                <i class="bi bi-shield-check me-1"></i> Sistem Analisa Pasar Multi-Sektor Terintegrasi
+            </span>
+            <h1 class="display-6 fw-bold text-dark mb-3">Tekno-Market Hub</h1>
+            <p class="fs-6 text-muted mb-4 lead">
+                Dashboard monitoring dan agregator data pasar modal Indonesia (IHSG) serta pasar valuta asing. Pantau histori harga OHLC, volume transaksi, dan analisa pergerakan harga lintas sektor dalam satu platform.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'stock_dashboard' 'BBCA' %}" class="btn btn-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2 hover-elevate">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Buka Visual Dashboard (BBCA)</span>
+                </a>
+                <a href="{% url 'admin:index' %}" class="btn btn-outline-dark px-4 py-2 d-flex align-items-center gap-2 hover-elevate">
+                    <i class="bi bi-database-fill-gear"></i>
+                    <span>Kelola Data di Admin</span>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <!-- Stat KPI Mini Cards -->
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-3 border text-center">
+                        <i class="bi bi-grid-3x3-gap-fill text-primary fs-3 d-block mb-1"></i>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_sectors|default:"12" }}</h4>
+                        <small class="text-muted">Total Sektor</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-3 border text-center">
+                        <i class="bi bi-buildings-fill text-success fs-3 d-block mb-1"></i>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_tickers|default:"0" }}</h4>
+                        <small class="text-muted">Emiten Terdaftar</small>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 bg-light rounded-3 border text-center">
+                        <i class="bi bi-database-check text-info fs-3 d-block mb-1"></i>
+                        <h4 class="fw-bold mb-0 text-dark">{{ total_records|intcomma|default:"0" }}</h4>
+                        <small class="text-muted">Total Baris Histori Data OHLC</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Header Sektor & Filter Pencarian Real-Time -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Katalog Sektor Pasar</h3>
+        <p class="text-muted mb-0 small">Pilih salah satu emiten untuk membuka dashboard visual atau gunakan API data.</p>
+    </div>
+    <div style="min-width: 280px;">
+        <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-filter text-muted"></i></span>
+            <input type="text" id="sectorFilterInput" class="form-control border-start-0" placeholder="Filter sektor atau ticker..." onkeyup="filterSectorCards()">
+        </div>
+    </div>
+</div>
+
+<!-- Grid Sektor -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5" id="sectorGrid">
+    {% for s in sectors %}
+    <div class="col sector-card-col" data-sector="{{ s.name|lower }} {{ s.desc|lower }} {% for t in s.active_tickers %}{{ t|lower }} {% endfor %}">
+        <div class="card h-100 card-hover shadow-sm border-top border-top-4 border-{{ s.badge }}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-3 bg-{{ s.badge }}-subtle p-2 text-{{ s.badge }}">
+                            <i class="bi {{ s.icon }} fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title fw-bold mb-0 text-dark">{{ s.name }}</h5>
+                            <span class="badge bg-{{ s.badge }}-subtle text-{{ s.badge }} border border-{{ s.badge }}-subtle" style="font-size: 0.7rem;">
+                                {{ s.code }}
+                            </span>
+                        </div>
+                    </div>
+                    <span class="badge bg-light text-secondary border" title="Jumlah data tersimpan">
+                        <i class="bi bi-layers me-1"></i>{{ s.count|default:"0" }} data
+                    </span>
+                </div>
+                
+                <p class="card-text text-muted small mb-3">
+                    {{ s.desc }}
+                </p>
+
+                <!-- Ticker List -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="fw-semibold text-secondary" style="font-size: 0.75rem;">EMITEN TERSEDIA:</small>
+                        <small class="text-muted" style="font-size: 0.7rem;">Klik untuk analisa</small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for ticker in s.active_tickers %}
+                            {% if s.code == 'forex' %}
+                                <a href="/api/forex/{{ ticker }}/" target="_blank" class="ticker-pill bg-success-subtle text-success border border-success-subtle text-decoration-none px-2 py-1 rounded">
+                                    <i class="bi bi-graph-up me-1"></i>{{ ticker }}
+                                </a>
+                            {% else %}
+                                <a href="{% url 'stock_dashboard' ticker %}" class="ticker-pill bg-light text-primary border border-secondary-subtle text-decoration-none px-2 py-1 rounded">
+                                    <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.7rem;"></i>{{ ticker }}
+                                </a>
+                            {% endif %}
+                        {% empty %}
+                            {% for ex in s.examples %}
+                                {% if s.code == 'forex' %}
+                                    <a href="/api/forex/{{ ex }}/" target="_blank" class="ticker-pill bg-light text-muted border text-decoration-none px-2 py-1 rounded">
+                                        {{ ex }}
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'stock_dashboard' ex %}" class="ticker-pill bg-light text-muted border text-decoration-none px-2 py-1 rounded">
+                                        {{ ex }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light-subtle border-top border-light d-flex justify-content-between align-items-center py-2 px-3">
+                <small class="text-muted font-monospace" style="font-size: 0.75rem;">{{ s.api_url }}</small>
+                {% if s.active_tickers %}
+                    <a href="{{ s.api_url }}{{ s.active_tickers.0 }}/" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-braces me-1"></i>Lihat JSON
+                    </a>
+                {% else %}
+                    <a href="{{ s.api_url }}" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-braces me-1"></i>Endpoint
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function filterSectorCards() {
+        const query = document.getElementById('sectorFilterInput').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.sector-card-col');
+        
+        cards.forEach(card => {
+            const data = card.getAttribute('data-sector') || '';
+            card.style.display = data.includes(query) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

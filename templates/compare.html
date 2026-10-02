@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Komparasi Kinerja Saham | Tekno-Market Hub{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Navigasi Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none"><i class="bi bi-house-door me-1"></i>Beranda</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Komparasi Saham</li>
+    </ol>
+</nav>
+
+<!-- Header & Form Pemilihan Emiten -->
+<div class="card shadow-sm border-0 mb-4 bg-white p-4 rounded-4">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <h2 class="display-6 fw-bold text-dark mb-1">
+                <i class="bi bi-bar-chart-steps text-primary me-2"></i>Komparasi Kinerja Saham
+            </h2>
+            <p class="text-muted small mb-3 mb-lg-0">
+                Bandingkan pertumbuhan return harga saham secara ternormalisasi (% Return) antar-emiten dalam satu grafik.
+            </p>
+        </div>
+        <div class="col-lg-6">
+            <form method="GET" action="{% url 'stock_compare' %}" class="row g-2 justify-content-lg-end">
+                <div class="col-sm-8">
+                    <input type="text" name="tickers" class="form-control form-control-sm" value="{{ selected_tickers_str }}" placeholder="Contoh: BBCA,BBRI,BMRI (maks 4)">
+                </div>
+                <div class="col-sm-4">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i>Bandingkan
+                    </button>
+                </div>
+            </form>
+
+            <!-- Quick Presets -->
+            <div class="mt-2 text-lg-end">
+                <small class="text-muted me-1">Preset:</small>
+                <a href="?tickers=BBCA,BBRI,BMRI" class="badge bg-light text-primary border text-decoration-none me-1">Big Banks</a>
+                <a href="?tickers=ADRO,MEDC,PGAS" class="badge bg-light text-warning border text-decoration-none me-1">Energi</a>
+                <a href="?tickers=GOTO,BUKA,EMTK" class="badge bg-light text-info border text-decoration-none me-1">Teknologi</a>
+                <a href="?tickers=KLBF,MIKA,SIDO" class="badge bg-light text-danger border text-decoration-none">Kesehatan</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafik Komparasi Ternormalisasi (% Return) -->
+<div class="card shadow-sm border-0 mb-4 bg-white rounded-4 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-success me-2"></i>Grafik Perbandingan Kinerja (% Return)</h5>
+            <small class="text-muted">Semua harga dinormalisasi ke 0% pada awal periode untuk melihat performa relatif</small>
+        </div>
+        <div>
+            {% for t in selected_tickers %}
+            <span class="badge bg-light text-dark border px-2 py-1 me-1">{{ t }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="height: 380px; position: relative;">
+        <canvas id="comparisonChart"></canvas>
+    </div>
+</div>
+
+<!-- Tabel Ringkasan Komparasi -->
+<div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-5">
+    <div class="card-header bg-white py-3 px-4 border-bottom">
+        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-table text-secondary me-2"></i>Perbandingan Parameter & Metrik Kinerja</h5>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+            <thead class="table-light">
+                <tr style="font-size: 0.85rem;" class="text-secondary text-uppercase">
+                    <th class="ps-4">Ticker</th>
+                    <th>Sektor</th>
+                    <th class="text-end">Harga Terakhir</th>
+                    <th class="text-center">Return Periode</th>
+                    <th class="text-end">Tertinggi 30H</th>
+                    <th class="text-end">Terendah 30H</th>
+                    <th class="text-end">Total Volume</th>
+                    <th class="text-center pe-4">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in comparison_data %}
+                <tr>
+                    <td class="ps-4">
+                        <strong class="fs-6 text-dark">{{ item.ticker }}</strong>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">{{ item.sector }}</span></td>
+                    <td class="text-end font-monospace fw-bold">Rp {{ item.latest_price|intcomma }}</td>
+                    <td class="text-center">
+                        {% if item.period_return > 0 %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                            <i class="bi bi-arrow-up-right me-1"></i>+{{ item.period_return|floatformat:2 }}%
+                        </span>
+                        {% elif item.period_return < 0 %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                            <i class="bi bi-arrow-down-right me-1"></i>{{ item.period_return|floatformat:2 }}%
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                            0.00%
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end font-monospace text-success">Rp {{ item.high_30|intcomma }}</td>
+                    <td class="text-end font-monospace text-danger">Rp {{ item.low_30|intcomma }}</td>
+                    <td class="text-end font-monospace text-muted">{{ item.volume|intcomma }}</td>
+                    <td class="text-center pe-4">
+                        <a href="{% url 'stock_dashboard' item.ticker %}" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.75rem;">
+                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        Pilih minimal 1 emiten di atas untuk melakukan komparasi.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const labels = JSON.parse('{{ date_labels_json|safe|escapejs }}');
+        const datasets = JSON.parse('{{ datasets_json|safe|escapejs }}');
+
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: 'Return (%)' },
+                        ticks: {
+                            callback: function(value) {
+                                return (value > 0 ? '+' : '') + value.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

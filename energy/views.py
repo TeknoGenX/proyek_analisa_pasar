@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from .models import EnergyStock
 
 def get_energy_stock(request, ticker):
-    """Mengambil data OHLC saham sektor keuangan."""
+    """Mengambil data OHLC saham sektor energi."""
     stocks = EnergyStock.objects.filter(ticker=ticker.upper())[:30]
     data = [{
         "date": stock.date.strftime("%Y-%m-%d"),

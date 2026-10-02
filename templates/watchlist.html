@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Watchlist Pribadi - Tekno-Market Hub{% endblock %}
+
+{% block content %}
+<!-- Navigasi Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none"><i class="bi bi-house-door me-1"></i>Beranda</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Watchlist Pribadi</li>
+    </ol>
+</nav>
+
+<!-- Header Halaman -->
+<div class="card shadow-sm border-0 mb-4 bg-white p-4 rounded-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="rounded-3 bg-warning-subtle text-warning p-2">
+                    <i class="bi bi-bookmark-star-fill fs-4"></i>
+                </div>
+                <div>
+                    <h2 class="display-6 fw-bold text-dark mb-0">Watchlist Pribadi</h2>
+                    <small class="text-muted">Pantau pergerakan harga dan sinyal teknikal emiten favorit Anda secara real-time</small>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fs-6">
+                <i class="bi bi-collection me-1"></i>{{ watchlist_items|length }} Emiten Dipantau
+            </span>
+            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-plus-lg"></i>
+                <span>Jelajahi Emiten</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if watchlist_items %}
+<!-- Tabel Watchlist -->
+<div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-5">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-list-stars text-warning me-2"></i>Daftar Pantauan Saham
+        </h5>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+            <thead class="table-light">
+                <tr style="font-size: 0.85rem;" class="text-secondary text-uppercase fw-bold">
+                    <th class="ps-4">Emiten</th>
+                    <th>Sektor</th>
+                    <th class="text-end">Harga Terakhir</th>
+                    <th class="text-center">Perubahan Harian</th>
+                    <th class="text-center">Sinyal Trading</th>
+                    <th class="text-center">Sinyal RSI</th>
+                    <th class="text-center">Ditambahkan</th>
+                    <th class="text-end pe-4">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in watchlist_items %}
+                <tr>
+                    <td class="ps-4">
+                        <a href="{% url 'stock_dashboard' entry.item.ticker %}" class="fw-bold text-dark text-decoration-none fs-6 d-flex align-items-center gap-2">
+                            <span>{{ entry.item.ticker }}</span>
+                            <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ entry.sector.badge|default:'secondary' }}-subtle text-{{ entry.sector.badge|default:'secondary' }} border border-{{ entry.sector.badge|default:'secondary' }}-subtle">
+                            <i class="bi {{ entry.sector.icon|default:'bi-tag' }} me-1"></i>{{ entry.sector.name|default:entry.item.sector }}
+                        </span>
+                    </td>
+                    <td class="text-end font-monospace fw-bold text-dark">
+                        {% if entry.latest_price %}
+                        Rp {{ entry.latest_price|intcomma }}
+                        {% else %}
+                        <span class="text-muted fw-normal">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if entry.latest_price %}
+                            {% if entry.is_up %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                <i class="bi bi-caret-up-fill me-1"></i>+{{ entry.change_pct|floatformat:2 }}%
+                            </span>
+                            {% elif entry.is_down %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                <i class="bi bi-caret-down-fill me-1"></i>{{ entry.change_pct|floatformat:2 }}%
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                                0.00%
+                            </span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if entry.rec.action %}
+                        <span class="badge bg-{{ entry.rec.badge }} text-white px-2 py-1 shadow-sm d-inline-flex align-items-center gap-1">
+                            <i class="bi {{ entry.rec.icon }}"></i>
+                            <span>{{ entry.rec.action }}</span>
+                        </span>
+                        <small class="d-block text-muted mt-1 font-monospace" style="font-size: 0.7rem;">TP: Rp {{ entry.rec.tp1|intcomma }}</small>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border">HOLD / WAIT</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-{{ entry.tech_badge }}-subtle text-{{ entry.tech_badge }} border border-{{ entry.tech_badge }}-subtle px-2 py-1">
+                            {{ entry.tech_signal }}
+                        </span>
+                    </td>
+                    <td class="text-center text-muted small">
+                        {{ entry.item.created_at|date:"d M Y" }}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="d-flex justify-content-end gap-1">
+                            <a href="{% url 'stock_dashboard' entry.item.ticker %}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Buka Dashboard">
+                                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                            </a>
+                            <form action="{% url 'toggle_watchlist' entry.item.ticker %}" method="POST" class="d-inline" onsubmit="return confirm('Hapus {{ entry.item.ticker }} dari watchlist?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Hapus dari Watchlist">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<!-- Tampilan Saat Watchlist Kosong -->
+<div class="card shadow-sm border-0 bg-white rounded-4 p-5 text-center my-4">
+    <div class="py-4">
+        <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex p-4 mb-3">
+            <i class="bi bi-bookmark-star display-4"></i>
+        </div>
+        <h4 class="fw-bold text-dark mb-2">Watchlist Anda Masih Kosong</h4>
+        <p class="text-muted col-md-6 mx-auto mb-4 lead fs-6">
+            Anda belum menambahkan emiten ke dalam daftar pantauan. Buka halaman dashboard emiten mana saja dan klik tombol <strong>+ Watchlist</strong> untuk mulai memantau pergerakan harga.
+        </p>
+        
+        <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
+            <a href="{% url 'stock_dashboard' 'BBCA' %}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-bank"></i>
+                <span>BBCA (Finance)</span>
+            </a>
+            <a href="{% url 'stock_dashboard' 'ADRO' %}" class="btn btn-outline-warning text-dark btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-lightning-charge"></i>
+                <span>ADRO (Energy)</span>
+            </a>
+            <a href="{% url 'stock_dashboard' 'TLKM' %}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-broadcast"></i>
+                <span>TLKM (Infrastructure)</span>
+            </a>
+            <a href="{% url 'stock_dashboard' 'ASII' %}" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-gear"></i>
+                <span>ASII (Industrial)</span>
+            </a>
+            <a href="{% url 'stock_dashboard' 'GOTO' %}" class="btn btn-outline-info text-dark btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-cpu"></i>
+                <span>GOTO (Technology)</span>
+            </a>
+        </div>
+
+        <a href="{% url 'home' %}" class="btn btn-primary px-4 py-2">
+            <i class="bi bi-grid-3x3-gap me-1"></i>Jelajahi Katalog Sektor
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

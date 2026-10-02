@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tekno-Market Hub - Platform Analisa Pasar Multi-Sektor{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            --card-hover-transform: translateY(-4px);
+            --card-hover-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex: 1;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+            border-radius: 0.75rem;
+        }
+        .card-hover:hover {
+            transform: var(--card-hover-transform);
+            box-shadow: var(--card-hover-shadow);
+        }
+        .ticker-pill {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.15s ease-in-out;
+        }
+        .ticker-pill:hover {
+            opacity: 0.85;
+        }
+        footer {
+            background-color: #0f172a;
+            color: #94a3b8;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header & Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm py-2">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
+                <i class="bi bi-graph-up-arrow text-primary fs-4"></i>
+                <span class="text-white">Tekno<span class="text-primary">-Market</span></span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill ms-1" style="font-size: 0.65rem;">PRO</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="bi bi-house-door me-1"></i>Beranda
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>Sektor Pasar
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 dropdown-menu-dark">
+                            <li><h6 class="dropdown-header text-uppercase">Pasar Saham (IHSG)</h6></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'BBCA' %}"><i class="bi bi-bank me-2 text-primary"></i>Finance (BBCA)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'ADRO' %}"><i class="bi bi-lightning-charge me-2 text-warning"></i>Energy (ADRO)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'ANTM' %}"><i class="bi bi-gem me-2 text-secondary"></i>Basic Materials (ANTM)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'ACES' %}"><i class="bi bi-cart me-2 text-info"></i>Consumer Cyclicals (ACES)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'ICBP' %}"><i class="bi bi-cup-straw me-2 text-success"></i>Non-Cyclicals (ICBP)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'ASII' %}"><i class="bi bi-gear me-2 text-muted"></i>Industrials (ASII)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'KLBF' %}"><i class="bi bi-heart-pulse me-2 text-danger"></i>Healthcare (KLBF)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'TLKM' %}"><i class="bi bi-broadcast me-2 text-primary"></i>Infrastructure (TLKM)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'BSDE' %}"><i class="bi bi-building me-2 text-warning"></i>Property (BSDE)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'GOTO' %}"><i class="bi bi-cpu me-2 text-info"></i>Technology (GOTO)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'stock_dashboard' 'BIRD' %}"><i class="bi bi-truck me-2 text-secondary"></i>Transportation (BIRD)</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header text-uppercase">Pasar Valas</h6></li>
+                            <li><a class="dropdown-item" href="/api/forex/USDIDR/" target="_blank"><i class="bi bi-currency-exchange me-2 text-success"></i>Forex (USD/IDR)</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'stock_compare' %}">
+                            <i class="bi bi-bar-chart-steps me-1"></i>Komparasi
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'watchlist' %}">
+                            <i class="bi bi-bookmark-star-fill text-warning me-1"></i>Watchlist
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Form Pencarian Ticker Cepat -->
+                <form class="d-flex align-items-center me-lg-3 my-2 my-lg-0" onsubmit="event.preventDefault(); const t = document.getElementById('navbarSearch').value.trim(); if(t) window.location.href='/dashboard/' + encodeURIComponent(t) + '/';">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-dark-subtle border-secondary text-light"><i class="bi bi-search"></i></span>
+                        <input id="navbarSearch" class="form-control form-control-sm bg-dark text-white border-secondary" type="search" placeholder="Cari emiten (misal: BBRI)..." aria-label="Search" style="max-width: 200px;">
+                        <button class="btn btn-primary btn-sm" type="submit">Buka</button>
+                    </div>
+                </form>
+
+                <div class="d-flex gap-2">
+                    <a href="{% url 'admin:index' %}" class="btn btn-outline-light btn-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Admin</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Konten Utama -->
+    <main class="main-content py-4">
+        <div class="container">
+            {% if messages %}
+            <div class="mb-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 mt-5 border-top border-secondary-subtle">
+        <div class="container">
+            <div class="row gy-3 align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <div class="d-flex align-items-center gap-2 justify-content-center justify-content-md-start mb-1">
+                        <i class="bi bi-graph-up-arrow text-primary"></i>
+                        <span class="fw-bold text-white">Tekno-Market Hub</span>
+                    </div>
+                    <small class="text-secondary d-block">Platform Analisa Multi-Sektor Pasar Indonesia, Indikator Teknikal & Komparasi Saham.</small>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Sinkronisasi Yahoo Finance Aktif
+                    </span>
+                    <small class="d-block text-secondary mt-1">&copy; 2026 TeknoGenX / Proyek Analisa Pasar</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

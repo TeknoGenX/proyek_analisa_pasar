@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from .models import FinanceStock
 
 def get_finance_stock(request, ticker):
@@ -14,3 +15,7 @@ def get_finance_stock(request, ticker):
     } for stock in stocks]
     
     return JsonResponse({"ticker": ticker.upper(), "sector": "Finance", "data": data})
+
+def finance_web_dashboard(request, ticker):
+    """Mengarahkan ke universal visual dashboard saham."""
+    return redirect('stock_dashboard', ticker=ticker.upper())

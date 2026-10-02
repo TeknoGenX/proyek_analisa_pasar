@@ -1,3 +1,8 @@
 from django.contrib import admin
+from .models import HealthStock
 
-# Register your models here.
+@admin.register(HealthStock)
+class HealthStockAdmin(admin.ModelAdmin):
+    list_display = ('ticker', 'date', 'open_price', 'close_price', 'volume')
+    list_filter = ('ticker',)
+    search_fields = ('ticker',)

@@ -1,7 +1,7 @@
 from django.db import models
 
 class EnergyStock(models.Model):
-    ticker = models.CharField(max_length=10, help_text="Kode emiten, misal: BBCA")
+    ticker = models.CharField(max_length=10, help_text="Kode emiten, misal: ADRO")
     date = models.DateField()
     open_price = models.DecimalField(max_digits=15, decimal_places=2)
     high_price = models.DecimalField(max_digits=15, decimal_places=2)
